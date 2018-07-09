@@ -1,0 +1,20 @@
+<Project>
+
+	<PropertyGroup>
+		<!-- Initial definitions. -->
+		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+
+		<!-- Path definitions. -->
+		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)\tmp\$(MSBuildProjectName)</BaseIntermediateOutputPath>
+		<IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
+		<OutputPath>$(MSBuildThisFileDirectory)\artifacts\bin\$(Configuration)\$(MSBuildProjectName)</OutputPath>
+
+		<!-- Variable and compile-time constant for the framework identifier. -->
+		<FrameworkIdentifier>$(TargetFramework.TrimEnd('.0123456789'))</FrameworkIdentifier>
+		<DefineConstants>$(DefineConstants);$(FrameworkIdentifier.ToUpper())</DefineConstants>
+		
+		<!-- Version for the product. -->
+		<VersionPrefix>3.43.0</VersionPrefix>
+	</PropertyGroup>
+
+</Project>
