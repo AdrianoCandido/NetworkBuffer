@@ -1,5 +1,4 @@
-﻿using NetworkBuffer.Communication.Tcp;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace NetworkBuffer.Communication.Tcp

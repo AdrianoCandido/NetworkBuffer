@@ -1,4 +1,4 @@
-﻿using NetworkBuffer.Messaging.Serialization;
+﻿using NetworkBuffer.Communication.Messaging.Serialization;
 using System.Net;
 
 namespace NetworkBuffer.Channels

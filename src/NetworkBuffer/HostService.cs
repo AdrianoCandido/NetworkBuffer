@@ -1,9 +1,9 @@
 ﻿using NetworkBuffer.Channels;
 using NetworkBuffer.Communication;
+using NetworkBuffer.Communication.Messaging.Serialization;
 using NetworkBuffer.Communication.Tcp;
-using NetworkBuffer.Messaging;
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
 namespace NetworkBuffer
@@ -11,7 +11,7 @@ namespace NetworkBuffer
     /// <summary>
     /// Provider the communication channel for the specified controller.
     /// </summary>
-    public class HostService<TController> : IDisposable where TController : class, IChannelController
+    public class HostService<TController> where TController : class, IChannelController
     {
         #region Public Constructors
 
@@ -20,51 +20,40 @@ namespace NetworkBuffer
         /// </summary>
         /// <param name="channelController">Controller used to process the client messages.</param>
         /// <exception cref="ArgumentException"><paramref name="channelController"/></exception>
-        public HostService(TController controller, MessagingProcessor messagingProcessor, Binding binding)
+        public HostService(ProtocolBinding binding)
         {
             this.Binding = binding ?? throw new ArgumentNullException(nameof(binding));
-            this.MessagingProcessor = messagingProcessor ?? throw new ArgumentNullException(nameof(messagingProcessor));
-            this.Controller = controller ?? throw new ArgumentException(nameof(controller));
-            this.Binding.Listener.ClientAccepted += AcceptNetworkClient;
-            this.Channels = new List<Channel<TController>>();
+            this.Binding.Listener.NetworkClientAccepted += AcceptNetworkClient;
+            this.ChannelList = new ObservableCollection<Channel<TController>>();
+            this.Channels = new ReadOnlyObservableCollection<Channel<TController>>(this.ChannelList);
         }
+
+        #endregion
+
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the binding.
+        /// </summary>
+        public ProtocolBinding Binding { get; }
+
+        /// <summary>
+        /// List of channels.
+        /// </summary>
+        public ReadOnlyObservableCollection<Channel<TController>> Channels { get; }
 
         #endregion
 
         #region Private Properties
 
         /// <summary>
-        /// Gets or sets the binding.
+        /// Gets or sets the channels.
         /// </summary>
-        public Binding Binding { get; set; }
-
-        /// <summary>
-        /// List of channels.
-        /// </summary>
-        private List<Channel<TController>> Channels { get; }
-
-        /// <summary>
-        /// Logical controller for the channel
-        /// </summary>
-        private TController Controller { get; }
-
-        /// <summary>
-        /// Gets or sets the messaging processor.
-        /// </summary>
-        private MessagingProcessor MessagingProcessor { get; set; }
-
-
+        private ObservableCollection<Channel<TController>> ChannelList { get; }
 
         #endregion
 
         #region Public Methods
-
-        /// <summary>
-        /// Dispose the object.
-        /// </summary>
-        public void Dispose()
-        {
-        }
 
         /// <summary>
         /// Start this channel.
@@ -92,14 +81,12 @@ namespace NetworkBuffer
         /// </summary>
         /// <param name="sender">Object that send the event.</param>
         /// <param name="networkClient">Client connected.</param>
-        private void AcceptNetworkClient(object sender, INetworkClient networkClient)
+        private void AcceptNetworkClient(object sender, ClientAcceptedEventArgs e)
         {
-            Channel<TController> channel = new Channel<TController>(this.Controller, networkClient, this.MessagingProcessor);
-
-            this.Channels.Add(channel);
-
-            // Register channel remove event.
-            networkClient.ConnectionLost += (object source, EventArgs args) => this.Channels.Remove(channel);
+            IMessageParser messageParser = this.Binding.CreateParser();
+            IMessageSerializer messageSerializer = this.Binding.MessageSerializer;
+            Channel<TController> channel = new Channel<TController>(e.NetworkClient, messageParser, messageSerializer);
+            this.ChannelList.Add(channel);
         }
 
         #endregion

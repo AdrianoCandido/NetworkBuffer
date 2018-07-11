@@ -1,7 +1,7 @@
-﻿using NetworkBuffer.Messaging;
+﻿using NetworkBuffer.Communication.Messaging;
 using System.Collections.Generic;
 
-namespace NetworkBuffer.Messaging
+namespace NetworkBuffer.Communication.Messaging
 {
     /// <summary>
     /// Represents the message.

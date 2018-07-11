@@ -1,13 +1,28 @@
 ﻿using System;
 
-namespace NetworkBuffer.Messaging.Serialization
+namespace NetworkBuffer.Communication.Messaging.Serialization
 {
+    /// <summary>
+    /// Represents the parser.
+    /// </summary>
     public interface IMessageParser
     {
-        event EventHandler<Message> MessageFound;
+        /// <summary>
+        /// Occurs when [message found].
+        /// </summary>
+        event EventHandler<MessageFoundEventArgs> MessageFound;
 
+        /// <summary>
+        /// Occurs when [data discarded].
+        /// </summary>
         event EventHandler<byte[]> DataDiscarded;
 
-        void Put(byte[] buffer, int value, int size);
+        /// <summary>
+        /// Puts the specified buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        /// <param name="index">The value.</param>
+        /// <param name="size">The size.</param>
+        void PutData(byte[] buffer, int size, int index = 0);
     }
 }

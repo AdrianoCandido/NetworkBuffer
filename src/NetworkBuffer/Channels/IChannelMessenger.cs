@@ -1,4 +1,4 @@
-﻿using NetworkBuffer.Messaging;
+﻿using NetworkBuffer.Communication.Messaging;
 using System.Threading.Tasks;
 
 namespace NetworkBuffer.Channels

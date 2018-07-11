@@ -1,7 +1,5 @@
-﻿using System;
-using NetworkBuffer.Communication.Tcp;
-using NetworkBuffer.Messaging;
-using NetworkBuffer.Messaging.Serialization;
+﻿using NetworkBuffer.Communication.Messaging;
+using System;
 
 namespace NetworkBuffer.Channels
 {
@@ -11,17 +9,12 @@ namespace NetworkBuffer.Channels
     /// <seealso cref="Dlp.Buy4.HostSimulator.Simulator.Channels.IChannelNotifier" />
     public class ChannelNotifier : IChannelNotifier
     {
-        #region Public Constructors
-
-        public ChannelNotifier(IMessageSerializer serializer, INetworkClient client)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ChannelNotifier"/> class.
+        /// </summary>
+        public ChannelNotifier()
         {
-            this.MessageSerializer = serializer;
-            this.NetworkClient = client;
         }
-
-        #endregion
-
-        #region Public Events
 
         /// <summary>
         /// Event raised on channel entry receive a message.
@@ -33,23 +26,18 @@ namespace NetworkBuffer.Channels
         /// </summary>
         public event EventHandler<IMessage> SendMessage;
 
-        #endregion
-
-        #region Public Properties
+        /// <summary>
+        /// Occurs when [connection lost].
+        /// </summary>
+        public event EventHandler ConnectionLost;
 
         /// <summary>
-        /// Gets the message serializer.
+        /// Notifies the connection lost.
         /// </summary>
-        public IMessageSerializer MessageSerializer { get; }
-
-        /// <summary>
-        /// Client that sent or receive the message.
-        /// </summary>
-        public INetworkClient NetworkClient { get; }
-
-        #endregion
-
-        #region Public Methods
+        public void NotifyConnectionLost()
+        {
+            ConnectionLost.Invoke(this, EventArgs.Empty);
+        }
 
         /// <summary>
         /// Notifies the received.
@@ -63,12 +51,10 @@ namespace NetworkBuffer.Channels
         /// <summary>
         /// Notifies the send.
         /// </summary>
-        /// <param name="dataList">The data list.</param>
-        public void NotifySend(IMessage dataList)
+        /// <param name="message">The data list.</param>
+        public void NotifySend(IMessage message)
         {
-            this.SendMessage?.Invoke(this, dataList);
+            this.SendMessage?.Invoke(this, message);
         }
-
-        #endregion
     }
 }

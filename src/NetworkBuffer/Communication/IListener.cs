@@ -13,10 +13,10 @@ namespace NetworkBuffer.Communication
         /// <summary>
         /// Event called on receive clients
         /// </summary>
-        event EventHandler<INetworkClient> ClientAccepted;
+        event EventHandler<ClientAcceptedEventArgs> NetworkClientAccepted;
 
         /// <summary>
-        /// Gets or sets the IP end point.
+        /// The listener end point.
         /// </summary>
         IPEndPoint IPEndPoint { get; }
 

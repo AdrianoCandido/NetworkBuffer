@@ -1,5 +1,6 @@
-﻿using NetworkBuffer.Communication.Tcp;
-using NetworkBuffer.Messaging;
+﻿using NetworkBuffer.Communication.Messaging;
+using NetworkBuffer.Communication.Messaging.Serialization;
+using NetworkBuffer.Communication.Tcp;
 using System;
 
 namespace NetworkBuffer.Channels
@@ -7,7 +8,7 @@ namespace NetworkBuffer.Channels
     /// <summary>
     /// Logical controller for the single client.
     /// </summary>
-    public sealed class Channel<TChannelController> : IChannel<TChannelController> where TChannelController : class, IChannelController
+    public class Channel<TChannelController> : IChannel where TChannelController : class, IChannelController
     {
         #region Public Constructors
 
@@ -16,9 +17,14 @@ namespace NetworkBuffer.Channels
         /// </summary>
         /// <param name="controller">The controller.</param>
         /// <param name="networkClient">The e.</param>
-        public Channel(TChannelController controller, INetworkClient networkClient, MessagingProcessor messagingProcessor)
+        public Channel(INetworkClient networkClient, IMessageParser messageParser, IMessageSerializer messageSerializer, ChannelControllerFactory<TChannelController> channelControllerFactory = null)
         {
-            this.InitializeChannel(controller, networkClient, messagingProcessor);
+            this.ChannelControllerFactory = channelControllerFactory ?? new ChannelControllerFactory<TChannelController>();
+            this.InitializeNetworkClient(networkClient);
+            this.InitializeSerializer(messageSerializer);
+            this.InitializeNotifier();
+            this.InitializeParser(messageParser);
+            this.InitializeController();
         }
 
         #endregion
@@ -28,54 +34,90 @@ namespace NetworkBuffer.Channels
         /// <summary>
         /// Logical controller to the channel.
         /// </summary>
-        public TChannelController ChannelController { get; private set; }
+        public virtual IChannelController ChannelController { get; private set; }
 
         /// <summary>
-        /// The connected socket in the channel.
+        /// Gets the message parser.
         /// </summary>
-        public INetworkClient Client { get; private set; }
+        public virtual IMessageParser MessageParser { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the message serializer.
+        /// </summary>
+        public virtual IMessageSerializer MessageSerializer { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the network client.
+        /// </summary>
+        public virtual INetworkClient NetworkClient { get; private set; }
 
         /// <summary>
         /// Channel event notifier.
         /// </summary>
-        public IChannelNotifier Notifier { get; private set; }
+        public virtual IChannelNotifier Notifier { get; private set; }
 
         #endregion
 
         #region Private Properties
 
         /// <summary>
-        /// Processor for message protocol.
+        /// Gets the channel controller factory.
         /// </summary>
-        private MessagingProcessor MessagingProcessor { get; set; }
+        private ChannelControllerFactory<TChannelController> ChannelControllerFactory { get; }
 
         #endregion
 
         #region Private Methods
 
         /// <summary>
-        /// Initializes the channel.
+        /// Initializes the controller.
         /// </summary>
-        /// <param name="controller">The controller.</param>
-        /// <param name="networkClient">The network client.</param>
-        private async void InitializeChannel(TChannelController controller, INetworkClient networkClient, MessagingProcessor messagingProcessor)
+        private void InitializeController()
         {
-
-            this.ChannelController = controller ?? throw new ArgumentNullException(nameof(controller));
-            ChannelConfiguration configuration = controller.GetConfiguration();
-
-            this.Client = networkClient ?? throw new ArgumentNullException(nameof(networkClient));
-            this.Notifier = new ChannelNotifier(configuration.Serializer, this.Client);
-            this.Notifier.ReceiveMessage += (object sender, IMessage message) => this.ChannelController.ProcessMessage(new ChannelMessenger(configuration.Serializer, message, this.Notifier, this.Client));
-            this.MessagingProcessor = messagingProcessor ?? throw new ArgumentNullException(nameof(messagingProcessor));
-            this.Client.DataReceived += (object sender, DataReceivedEventArgs e) => this.MessagingProcessor.PutData(e.Buffer, e.Size);
-
-            await this.Client.Initialize();
+            this.ChannelController = this.ChannelControllerFactory.CrateController();
+            this.ChannelController.NetworkClient = this.NetworkClient;
+            this.NetworkClient.Initialize();
+            this.ChannelController.Initialize(this.NetworkClient);
         }
 
-        private void Notifier_ReceiveMessage(object sender, IMessage e)
+        /// <summary>
+        /// Initializes the network client.
+        /// </summary>
+        /// <param name="networkClient">The network client.</param>
+        private void InitializeNetworkClient(INetworkClient networkClient)
         {
-            throw new NotImplementedException();
+            this.NetworkClient = networkClient ?? throw new ArgumentNullException(nameof(networkClient));
+            this.NetworkClient.ConnectionLost += (object source, EventArgs e) => this.Notifier.NotifyConnectionLost();
+            this.NetworkClient.DataReceived += (object sender, DataReceivedEventArgs e) => this.MessageParser.PutData(e.Buffer, e.Size);
+        }
+
+        /// <summary>
+        /// Initializes the notifier.
+        /// </summary>
+        private void InitializeNotifier()
+        {
+            this.Notifier = new ChannelNotifier();
+            this.Notifier.ReceiveMessage += (object sender, IMessage message) => this.ChannelController.ProcessMessage(new ChannelMessenger(message, this.Notifier));
+            this.Notifier.SendMessage += (object source, IMessage message) => this.NetworkClient.SendSync(this.MessageSerializer.Pack(message));
+        }
+
+        /// <summary>
+        /// Initializes the parser.
+        /// </summary>
+        /// <param name="messageParser">The message parser.</param>
+        private void InitializeParser(IMessageParser messageParser)
+        {
+            this.MessageParser = messageParser ?? throw new ArgumentNullException(nameof(messageParser));
+            this.MessageParser.MessageFound += (object source, MessageFoundEventArgs e) => this.Notifier.NotifyReceived(e.Message);
+        }
+
+        /// <summary>
+        /// Initializes the serializer.
+        /// </summary>
+        /// <param name="messageSerializer">The message serializer.</param>
+        private void InitializeSerializer(IMessageSerializer messageSerializer)
+        {
+            this.MessageSerializer = messageSerializer ?? throw new ArgumentNullException(nameof(messageSerializer));
         }
 
         #endregion

@@ -28,7 +28,7 @@ namespace NetworkBuffer.Communication.Tcp
         /// <summary>
         /// Event called on receive clients
         /// </summary>
-        public event EventHandler<INetworkClient> ClientAccepted;
+        public event EventHandler<ClientAcceptedEventArgs> NetworkClientAccepted;
 
         #endregion
 
@@ -80,7 +80,7 @@ namespace NetworkBuffer.Communication.Tcp
             while (this.IsActive)
             {
                 // Call client accepted event.
-                this.ClientAccepted?.Invoke(this, await this.AcceptNetworkClientAsync());
+                this.NetworkClientAccepted?.Invoke(this, new ClientAcceptedEventArgs(await this.AcceptNetworkClientAsync()));
             }
         }
 

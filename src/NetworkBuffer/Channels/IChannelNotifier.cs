@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using NetworkBuffer.Communication.Tcp;
-using NetworkBuffer.Messaging;
-using NetworkBuffer.Messaging.Serialization;
+﻿using NetworkBuffer.Communication.Messaging;
+using System;
 
 namespace NetworkBuffer.Channels
 {
@@ -22,6 +19,17 @@ namespace NetworkBuffer.Channels
         event EventHandler<IMessage> SendMessage;
 
         /// <summary>
+        /// Occurs when [connection lost].
+        /// </summary>
+        event EventHandler ConnectionLost;
+
+        /// <summary>
+        /// Notifies the connection lost.
+        /// </summary>
+        /// <param name="message">The message.</param>
+        void NotifyConnectionLost();
+
+        /// <summary>
         /// Notifies the send.
         /// </summary>
         /// <param name="message">The data list.</param>
@@ -32,15 +40,5 @@ namespace NetworkBuffer.Channels
         /// </summary>
         /// <param name="message">The data list.</param>
         void NotifyReceived(IMessage message);
-
-        /// <summary>
-        /// Gets the message serializer.
-        /// </summary>
-        IMessageSerializer MessageSerializer { get; }
-
-        /// <summary>
-        /// Client that sent or receive the message.
-        /// </summary>
-        INetworkClient NetworkClient { get; }
     }
 }

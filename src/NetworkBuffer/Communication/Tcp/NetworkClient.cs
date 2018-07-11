@@ -1,5 +1,4 @@
-﻿using NetworkBuffer.Communication.Tcp;
-using System;
+﻿using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,8 +24,6 @@ namespace NetworkBuffer.Communication.Tcp
             this.TokenSource = new CancellationTokenSource();
         }
 
-        public IListener Listener { get; }
-
         #endregion
 
         #region Public Events
@@ -43,7 +40,21 @@ namespace NetworkBuffer.Communication.Tcp
 
         #endregion
 
+        #region Public Properties
+
+        /// <summary>
+        /// Gets or sets the listener.
+        /// </summary>
+        public IListener Listener { get; }
+
+        #endregion
+
         #region Private Properties
+
+        /// <summary>
+        /// Connection stream.
+        /// </summary>
+        private NetworkStream Stream { get; }
 
         /// <summary>
         /// Handle for client communication
@@ -54,11 +65,6 @@ namespace NetworkBuffer.Communication.Tcp
         /// Token to manage current activity.
         /// </summary>
         private CancellationTokenSource TokenSource { get; }
-
-        /// <summary>
-        /// Connection stream.
-        /// </summary>
-        private NetworkStream Stream { get; }
 
         #endregion
 
@@ -112,7 +118,6 @@ namespace NetworkBuffer.Communication.Tcp
         /// </summary>
         private void DoConnectionLost()
         {
-            this.Disconnect();
             this.ConnectionLost?.Invoke(this, EventArgs.Empty);
         }
 
@@ -139,7 +144,7 @@ namespace NetworkBuffer.Communication.Tcp
 
                 this.DoConnectionLost();
             }
-            catch (Exception e)
+            catch
             {
                 this.DoConnectionLost();
             }

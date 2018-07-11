@@ -1,17 +1,17 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Moq.Protected;
 using NetworkBuffer.Communication;
 using NetworkBuffer.Communication.Messaging.Serialization;
 using NetworkBuffer.Communication.Tcp;
-using System.Collections.Specialized;
+using System;
 using System.Threading.Tasks;
 
 namespace NetworkBuffer.Tests
 {
     [TestClass]
-    public class ServiceFactoryTests
+    public class HostServiceTests
     {
         private Mock<ProtocolBinding> ProtocolBindingMock;
         private Mock<IMessageParser> MessageParserMock;
@@ -37,27 +37,44 @@ namespace NetworkBuffer.Tests
         }
 
         [TestMethod]
-        public async Task Service_should_be_created()
+        public async Task Host_service_should_be_starts()
         {
-            HostService<TestController> hostService = await ServiceFactory.CreateService<TestController>(this.ProtocolBindingMock.Object);
+            HostService<TestController> hostService = await new HostService<TestController>(this.ProtocolBindingMock.Object).StartAsync();
             hostService.Should().NotBeNull();
-            hostService.Binding.Listener.IsActive.Should().BeTrue();
+            hostService.Channels.Should().NotBeNull();
+            hostService.Channels.Should().HaveCount(0);
         }
 
         [TestMethod]
-        public async Task Service_should_notify_collection_changed()
+        public async Task Host_service_should_initialize_Listener()
         {
-            HostService<TestController> hostService = await ServiceFactory.CreateService<TestController>(this.ProtocolBindingMock.Object);
-            INotifyCollectionChanged notifyCollectionChanged = hostService.Channels;
-            bool changed = false;
+            this.ProtocolBindingMock.Setup(c => c.Listener.InitializeAsync()).Returns(Task.CompletedTask).Verifiable();
+            await new HostService<TestController>(this.ProtocolBindingMock.Object).StartAsync();
+            this.ProtocolBindingMock.Verify();
+        }
 
-            notifyCollectionChanged.CollectionChanged += (object sender, NotifyCollectionChangedEventArgs e) =>
-            {
-                changed = true;
-            };
+        [TestMethod]
+        public async Task Host_service_should_stop_listener()
+        {
+            this.ProtocolBindingMock.Setup(c => c.Listener.Stop()).Verifiable();
+            HostService<TestController> hostService = await new HostService<TestController>(this.ProtocolBindingMock.Object).StartAsync();
+            hostService.Stop();
+            this.ProtocolBindingMock.Verify();
+        }
 
+        [TestMethod]
+        public async Task Host_service_should_create_a_channel_when_client_connect()
+        {
+            HostService<TestController> hostService = await new HostService<TestController>(this.ProtocolBindingMock.Object).StartAsync();
             this.ListenerMock.Raise(c => c.NetworkClientAccepted += null, new ClientAcceptedEventArgs(this.NetworkClientMock.Object));
-            changed.Should().BeTrue();
+            hostService.Channels.Should().HaveCount(1);
+        }
+
+        [TestMethod]
+        public void Host_service_should_be_throw_when_constructor_argument_is_null()
+        {
+            Action action = () => new HostService<TestController>(null);
+            action.Should().Throw<ArgumentNullException>();
         }
     }
 }
