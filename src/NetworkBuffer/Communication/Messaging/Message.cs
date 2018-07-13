@@ -1,5 +1,4 @@
-﻿using NetworkBuffer.Communication.Messaging;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace NetworkBuffer.Communication.Messaging
 {
@@ -8,5 +7,18 @@ namespace NetworkBuffer.Communication.Messaging
     /// </summary>
     public class Message : Dictionary<string, string>, IMessage
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Message"/> class.
+        /// </summary>
+        public Message()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Message"/> class.
+        /// </summary>
+        public Message(IDictionary<string, string> dictionary) : base(dictionary)
+        {
+        }
     }
 }
