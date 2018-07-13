@@ -1,5 +1,4 @@
 ﻿using NetworkBuffer.Communication.Messaging;
-using System.Threading.Tasks;
 
 namespace NetworkBuffer.Channels
 {
@@ -14,7 +13,7 @@ namespace NetworkBuffer.Channels
         /// </summary>
         /// <param name="replyMessage">Message to reply to the client.</param>
         /// <returns>If message as sent to client.</returns>
-        Task ReplyMessageAsync(IMessage replyMessage);
+        void ReplyMessage(IMessage replyMessage);
 
         /// <summary>
         /// The message received in the channel.

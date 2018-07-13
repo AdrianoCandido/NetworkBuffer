@@ -25,11 +25,6 @@ namespace NetworkBuffer.Communication.Tcp
         Task SendSync(byte[] buffer);
 
         /// <summary>
-        /// Gets or sets the listener.
-        /// </summary>
-        IListener Listener { get; }
-
-        /// <summary>
         /// Event occurred on client or server lost the connection.
         /// </summary>
         event EventHandler ConnectionLost;

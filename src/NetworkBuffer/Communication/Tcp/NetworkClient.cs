@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Net.Sockets;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,7 +8,7 @@ namespace NetworkBuffer.Communication.Tcp
     /// <summary>
     /// Network client to stream communication.
     /// </summary>
-    public class NetworkClient : INetworkClient
+    public class NetworkClient : INetworkClient, IDisposable
     {
         #region Public Constructors
 
@@ -16,11 +16,10 @@ namespace NetworkBuffer.Communication.Tcp
         /// Create communication on TCP clients.
         /// </summary>
         /// <param name="client">Client start transmission.</param>
-        public NetworkClient(TcpClient client, IListener listenner)
+        public NetworkClient(ITcpClient client)
         {
-            this.Listener = listenner;
             this.TcpClient = client ?? throw new ArgumentNullException(nameof(client));
-            this.Stream = this.TcpClient.GetStream();
+            this.Stream = this.TcpClient.Stream();
             this.TokenSource = new CancellationTokenSource();
         }
 
@@ -40,26 +39,17 @@ namespace NetworkBuffer.Communication.Tcp
 
         #endregion
 
-        #region Public Properties
-
-        /// <summary>
-        /// Gets or sets the listener.
-        /// </summary>
-        public IListener Listener { get; }
-
-        #endregion
-
         #region Private Properties
 
         /// <summary>
         /// Connection stream.
         /// </summary>
-        private NetworkStream Stream { get; }
+        private Stream Stream { get; }
 
         /// <summary>
         /// Handle for client communication
         /// </summary>
-        private TcpClient TcpClient { get; }
+        private ITcpClient TcpClient { get; }
 
         /// <summary>
         /// Token to manage current activity.
@@ -77,10 +67,10 @@ namespace NetworkBuffer.Communication.Tcp
         {
             try
             {
-                this.TokenSource.Cancel();
-                this.TcpClient?.Client?.Shutdown(SocketShutdown.Both);
+                this.TokenSource?.Cancel();
                 this.TcpClient?.Close();
                 this.Stream?.Dispose();
+                this.ConnectionLost?.Invoke(this, EventArgs.Empty);
             }
             catch
             {
@@ -114,39 +104,67 @@ namespace NetworkBuffer.Communication.Tcp
         #region Private Methods
 
         /// <summary>
-        /// Invoke Event Connection lost.
-        /// </summary>
-        private void DoConnectionLost()
-        {
-            this.ConnectionLost?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
         /// Read client data async.
         /// </summary>
         private async Task ReadDataAsync()
         {
-            try
+            using (ITcpClient client = this.TcpClient)
             {
-                while (this.TcpClient.Connected)
+                try
                 {
-                    byte[] buffer = new byte[1024];
-
-                    int size = await this.Stream.ReadAsync(buffer, 0, buffer.Length, TokenSource.Token);
-
-                    if (size == 0)
+                    while (client.Connected && this.TokenSource.IsCancellationRequested == false)
                     {
-                        this.DoConnectionLost();
+                        byte[] buffer = new byte[1024];
+
+                        int size = await this.Stream.ReadAsync(buffer, 0, buffer.Length, TokenSource.Token);
+
+                        if (size == 0)
+                        {
+                            this.Disconnect();
+                            return;
+                        }
+
+                        this.DataReceived?.Invoke(this, new DataReceivedEventArgs(size, buffer));
                     }
 
-                    this.DataReceived?.Invoke(this, new DataReceivedEventArgs(size, buffer));
+                    this.Disconnect();
                 }
-
-                this.DoConnectionLost();
+                catch
+                {
+                    this.Disconnect();
+                }
             }
-            catch
+        }
+
+        /// <summary>
+        /// The disposed
+        /// </summary>
+        private bool Disposed = false;
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            if (Disposed == false)
             {
-                this.DoConnectionLost();
+                this.Dispose(true);
+            }
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="dispose">
+        ///   <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        private void Dispose(bool dispose)
+        {
+            if (dispose)
+            {
+                this.Disposed = true;
+                this.TokenSource?.Dispose();
+                this.Stream?.Dispose();
+                this.TcpClient?.Dispose();
             }
         }
 

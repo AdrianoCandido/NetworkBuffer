@@ -69,7 +69,7 @@ namespace NetworkBuffer.Communication.Tcp
         /// <returns></returns>
         private async Task<INetworkClient> AcceptNetworkClientAsync()
         {
-            return new NetworkClient(await this.AcceptTcpClientAsync(), this);
+            return new NetworkClient(new TcpClientWrapper(await this.AcceptTcpClientAsync()));
         }
 
         /// <summary>

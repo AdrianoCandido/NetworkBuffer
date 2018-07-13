@@ -39,7 +39,7 @@ namespace NetworkBuffer.Channels
         /// <returns>
         /// If message as sent to client.
         /// </returns>
-        public async Task ReplyMessageAsync(IMessage replyMessage)
+        public void ReplyMessage(IMessage replyMessage)
         {
             this.Notifier.NotifySend(replyMessage);
         }

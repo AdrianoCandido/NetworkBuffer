@@ -18,8 +18,4 @@
     <ProjectReference Include="..\..\src\NetworkBuffer\NetworkBuffer.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Communication\" />
-  </ItemGroup>
-
 </Project>
