@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace NetworkBuffer.Communication.Messaging.Serialization
 {
@@ -17,12 +18,19 @@ namespace NetworkBuffer.Communication.Messaging.Serialization
         /// </summary>
         event EventHandler<byte[]> DataDiscarded;
 
+
+        /// <summary>
+        /// Puts the specified buffer.
+        /// </summary>
+        /// <param name="buffer">The buffer.</param>
+        Task Put(byte[] buffer);
+
         /// <summary>
         /// Puts the specified buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="index">The value.</param>
         /// <param name="size">The size.</param>
-        void PutData(byte[] buffer, int size, int index = 0);
+        Task Put(byte[] buffer, int size, int index = 0);
     }
 }

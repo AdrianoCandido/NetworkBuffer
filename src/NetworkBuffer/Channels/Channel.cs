@@ -88,7 +88,7 @@ namespace NetworkBuffer.Channels
         {
             this.NetworkClient = networkClient ?? throw new ArgumentNullException(nameof(networkClient));
             this.NetworkClient.ConnectionLost += (object source, EventArgs e) => this.Notifier.NotifyConnectionLost();
-            this.NetworkClient.DataReceived += (object sender, DataReceivedEventArgs e) => this.MessageParser.PutData(e.Buffer, e.Size);
+            this.NetworkClient.DataReceived += (object sender, DataReceivedEventArgs e) => this.MessageParser.Put(e.Buffer, e.Size);
         }
 
         /// <summary>
@@ -97,8 +97,20 @@ namespace NetworkBuffer.Channels
         private void InitializeNotifier()
         {
             this.Notifier = new ChannelNotifier();
-            this.Notifier.ReceiveMessage += (object sender, IMessage message) => this.ChannelController.ProcessMessage(new ChannelMessenger(message, this.Notifier));
-            this.Notifier.SendMessage += (object source, IMessage message) => this.NetworkClient.SendSync(this.MessageSerializer.Pack(message));
+
+            this.Notifier.ReceiveMessage += (object sender, IMessage message) =>
+            {
+                ChannelMessenger channelMessenger = new ChannelMessenger(message, this.Notifier);
+                this.ChannelController.ProcessMessage(channelMessenger);
+            };
+
+            this.Notifier.SendMessage += (object source, IMessage message) =>
+            {
+                if (this.MessageSerializer.TryPack(message, out byte[] result))
+                {
+                    this.NetworkClient.SendSync(result);
+                }
+            };
         }
 
         /// <summary>
@@ -108,7 +120,10 @@ namespace NetworkBuffer.Channels
         private void InitializeParser(IMessageParser messageParser)
         {
             this.MessageParser = messageParser ?? throw new ArgumentNullException(nameof(messageParser));
-            this.MessageParser.MessageFound += (object source, MessageFoundEventArgs e) => this.Notifier.NotifyReceived(e.Message);
+            this.MessageParser.MessageFound += (object source, MessageFoundEventArgs e) => 
+            {
+                this.Notifier.NotifyReceived(e.Message);
+            };
         }
 
         /// <summary>

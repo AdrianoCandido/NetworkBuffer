@@ -33,6 +33,8 @@ namespace NetworkBuffer.Tests.Channels
             this.NetworkClientMock = new Mock<INetworkClient>();
             this.MessageParserMock = new Mock<IMessageParser>();
             this.MessageSerializerMock = new Mock<IMessageSerializer>();
+            byte[] result;
+            this.MessageSerializerMock.Setup(c => c.TryPack(It.IsAny<IMessage>(), out result)).Returns(true);
             this.ListenerMock = new Mock<IListener>();
             this.ListenerMock.Setup(c => c.IsActive).Returns(true);
 
@@ -90,7 +92,7 @@ namespace NetworkBuffer.Tests.Channels
             bool changed = false;
             this.Channel = new Channel<TestController>(this.NetworkClientMock.Object, this.ProtocolBindingMock.Object.CreateParser(), this.ProtocolBindingMock.Object.MessageSerializer, this.ChannelControllerFactoryMock.Object);
             this.Channel.Notifier.ReceiveMessage += (object sender, IMessage e) => changed = true;
-            this.MessageParserMock.Raise(c => c.MessageFound += null, new MessageFoundEventArgs(new Message()));            
+            this.MessageParserMock.Raise(c => c.MessageFound += null, new MessageFoundEventArgs(new Message()));
             changed.Should().BeTrue();
         }
 
@@ -116,7 +118,7 @@ namespace NetworkBuffer.Tests.Channels
         public void Channel_should_put_data_to_parser()
         {
             this.Channel = new Channel<TestController>(this.NetworkClientMock.Object, this.ProtocolBindingMock.Object.CreateParser(), this.ProtocolBindingMock.Object.MessageSerializer, this.ChannelControllerFactoryMock.Object);
-            this.MessageParserMock.Setup(c => c.PutData(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Verifiable();
+            this.MessageParserMock.Setup(c => c.Put(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>())).Verifiable();
             this.ListenerMock.Raise(c => c.NetworkClientAccepted += null, new ClientAcceptedEventArgs(this.NetworkClientMock.Object));
             this.NetworkClientMock.Raise(c => c.DataReceived += null, new DataReceivedEventArgs(0, new byte[] { }));
             this.MessageParserMock.VerifyAll();
